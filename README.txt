@@ -9,7 +9,7 @@ A BepInEx + Harmony plugin that runtime-patches Assembly-CSharp.dll
 to fix 13 classes of performance bugs in The Long Drive. Tested on
 build "2024.11.26b_test" (Steam beta channel). 42 method patches
 in total. Should also work on the stable branch and most future
-versions, since the patches target well-named methods that change
+versions (if there are any), since the patches target well-named methods that change
 rarely.
 
 Highlights of what it fixes:
