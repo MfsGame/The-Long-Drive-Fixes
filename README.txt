@@ -1,6 +1,6 @@
 ================================================================
   TLD Performance Patch v2.3
-  Performance mod for The Long Drive (Genesz, 2026 beta build)
+  Performance mod for The Long Drive (Genesz, 2024 beta build)
 ================================================================
 
 WHAT IT DOES
