@@ -12,6 +12,6 @@ TLDDirectMP      0.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Driv
 TLDPubPerfPatch  1.2.2   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubPerfPatch.dll
 TLDPubFullLog    1.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubFullLog.dll
 TLDPubMPCapture  1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPCapture.dll
-TLDPubLoopback   0.7.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubLoopback.dll
+TLDPubLoopback   0.8.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubLoopback.dll
 TLDPubFakeId     1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubFakeId.dll
 TLDPubSpawner    1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubSpawner.dll
