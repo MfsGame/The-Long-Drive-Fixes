@@ -26,4 +26,5 @@ TLDPubMPDiag     1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Driv
 TLDPubDevMode    1.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubDevMode.dll
 TLDDirectMP      0.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDDirectMP.dll
 TLDPubBodyPush   0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubBodyPush.dll
+TLDPubPlayerStable 0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubPlayerStable.dll
 TLDPubLoopback   0.10.0  https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubLoopback.dll
