@@ -1,30 +1,44 @@
-# TLD Public MP — plugin manifest
+# TLD Public MP — plugin manifest (v2.1 known-good)
+#
 # Format: <PluginAssemblyName>  <Version>  <DownloadURL>
 # Lines starting with # are comments. Blank lines are skipped.
 #
-# The TLDPubMPUpdater patcher fetches this file each launch, compares <Version>
-# against the BepInPlugin version of each local DLL, and downloads anything
-# newer as *.dll.update (applied on next launch).
+# The TLDPubMPUpdater patcher fetches this file each launch, compares
+# <Version> against the BepInPlugin version of each local DLL, and downloads
+# anything newer as *.dll.update (applied on next launch).
 #
-# IMPORTANT: every version below MUST match the actual AssemblyVersion of the
-# DLL in /public at the same URL. Mismatch = updater downloads a wrong-versioned
-# DLL believing it's an upgrade, and your install rolls forward (or backward)
-# to whatever's at the URL. This is what caused the "weird issues" after the
-# v2.x experiments — the manifest still claimed v2.11 when we'd reverted local
-# installs to the v1.1 baseline, so the updater quietly re-shipped v2.11 each
-# launch.
+# This snapshot was confirmed working by Reedo in a real-MP session +
+# NetSim-emulated session (100ms±50ms latency, 4% packet loss). The Driver
+# Authority + Fluid Dedupe + Player Stable + Body Push combination
+# specifically addressed:
+#   - "Rev but no movement" while driving (DriverAuthority — stops echoed
+#     stale inputs from clobbering the driver's W press under latency)
+#   - Friend disappears from seat and re-pops (PlayerStable — extends the
+#     stock 1.5s player-destroy timeout to 5s so brief network/GC stutters
+#     don't destroy avatars)
+#   - Pushed items snap back (BodyPush — broadcasts pushablescript.PushLocal
+#     impulses that stock TLD silently drops)
+#   - Bandwidth saturation (FluidDedupe — kills ~95% of the 32k fluid-state
+#     packets/5min spam that stock TLD broadcasts; measured directly off the
+#     bridge files under load).
 #
-# This manifest is now the strict v1.1 baseline (with DevMode bumped to 1.2 —
-# same plugin, just enables the dev-key forcing). All our experimental MP
-# plugins (TLDPubBodyPush, TLDPubPlayerStable, TLDPubCarSync, TLDPubLoopback,
-# TLDPubBridge, TLDPubItemSmooth, TLDPubFakeId, TLDPubFullLog, TLDPubMPCapture,
-# TLDPubSpawner) are intentionally NOT listed and have been removed from
-# /public. If a user has them installed locally, the updater leaves them
-# alone — won't push them to anyone else, won't try to maintain them.
-# Source for each remains in /src for any future revisit.
+# All four are pure additive Harmony patches. No claim/authority changes, no
+# transport replacement, no smoothing. The previous experimental versions
+# that broke things (ClaimDrivenCars, ClaimMovingItems, SteamMatchmaking
+# fake-lobby, ItemSmooth) are NOT in this manifest and have been removed
+# from /public — their sources remain in /src for future revisit.
+#
+# Dev-only tools (TLDPubLoopback v0.12 with NetSim, TLDPubBridge HTTP
+# introspect) are also NOT in this manifest. They live in /src and can be
+# manually installed for local two-instance testing if you want to
+# reproduce real-network conditions without your friend online.
 
-TLDMPUnlock      2.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDMPUnlock.dll
-TLDPubMPPatch    1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPPatch.dll
-TLDPubMPDiag     1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPDiag.dll
-TLDPubDevMode    1.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubDevMode.dll
-TLDDirectMP      0.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDDirectMP.dll
+TLDMPUnlock           2.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDMPUnlock.dll
+TLDPubMPPatch         1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPPatch.dll
+TLDPubMPDiag          1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPDiag.dll
+TLDPubDevMode         1.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubDevMode.dll
+TLDDirectMP           0.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDDirectMP.dll
+TLDPubBodyPush        0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubBodyPush.dll
+TLDPubPlayerStable    0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubPlayerStable.dll
+TLDPubFluidDedupe     0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubFluidDedupe.dll
+TLDPubDriverAuthority 0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubDriverAuthority.dll

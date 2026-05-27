@@ -24,7 +24,7 @@ namespace TLDPubLoopback
     {
         public const string PluginGuid = "com.reedo.tld.publoopback";
         public const string PluginName = "TLD Public Loopback";
-        public const string PluginVersion = "0.11.0";
+        public const string PluginVersion = "0.12.0";
 
         internal static ManualLogSource Log;
 
@@ -39,6 +39,29 @@ namespace TLDPubLoopback
         internal static ConfigEntry<bool> CfgFakeMatchmaking;
         internal static ConfigEntry<bool> CfgAutoJoin;
         internal static ConfigEntry<ulong> CfgFakeLobbyID;
+
+        // ----- Network simulator (v0.12+) -----
+        // The point of this section is to make the file-bridge transport BEHAVE LIKE real
+        // Steam P2P, with realistic latency + occasional packet loss + jitter. Pure file-bridge
+        // delivery is essentially perfect (zero latency, zero loss), which masks every
+        // network-condition bug in TLD's MP code — that's why local two-instance testing
+        // says "fine" but real online sessions fall apart with the same plugin set.
+        //
+        // Configurable knobs:
+        //   NetSim.Enabled        master toggle (off by default — pure loopback when off)
+        //   NetSim.LatencyMs      base one-way delay added to each received packet
+        //   NetSim.JitterMs       ± random variation around LatencyMs per packet
+        //   NetSim.DropRate       fraction of non-heartbeat packets to silently drop (0..1)
+        //
+        // Implementation: FileReadLoop reads packets off the bridge file as before, but
+        // instead of immediately enqueueing them, schedules them on a per-packet timer.
+        // A separate DeliveryLoop thread wakes when packets are due and either enqueues
+        // them (real path) or skips them (drop). Heartbeats bypass the delay so peer-up
+        // detection still works promptly.
+        internal static ConfigEntry<bool> CfgNetSim;
+        internal static ConfigEntry<float> CfgNetSimLatencyMs;
+        internal static ConfigEntry<float> CfgNetSimJitterMs;
+        internal static ConfigEntry<float> CfgNetSimDropRate;
 
         private static FileStream outStream;
         private static long inboundPos;
@@ -70,6 +93,15 @@ namespace TLDPubLoopback
         internal static string outPath;
         private static Thread heartbeatThread;
         private static long lastFileLength;
+
+        // NetSim state
+        internal class PendingPacket { public byte[] Payload; public long DeliverAtTicks; }
+        internal static readonly List<PendingPacket> netSimPending = new List<PendingPacket>();
+        internal static readonly object netSimLock = new object();
+        internal static readonly System.Random netSimRng = new System.Random();
+        internal static int netSimDropped;
+        internal static int netSimDelayed;
+        private static Thread netSimDeliveryThread;
 
         private void Awake()
         {
@@ -108,13 +140,13 @@ namespace TLDPubLoopback
                 "host (= same houses, roads, gas stations). Without this, loopback test mode shows no buildings " +
                 "because TLD's MP protocol doesn't broadcast building positions — it assumes both sides have the " +
                 "same procedural seed.");
-            CfgFakeMatchmaking = Config.Bind("Loopback", "FakeMatchmaking", true,
+            CfgFakeMatchmaking = Config.Bind("Loopback", "FakeMatchmaking", false,
                 "Patch SteamMatchmaking.{GetNumLobbyMembers,GetLobbyMemberByIndex,GetLobbyOwner,GetLobbyData,SetLobbyData} " +
                 "so stock TLD code sees a real 2-member lobby instead of an empty Steam matchmaking response. " +
                 "Fixes: 'host doesn't see client' (player-list iterations now find the peer), the snl.cs:1339 " +
                 "self-message drop check (since _id now lands in the lobby-member set normally), and gives us a " +
                 "stock-code path for seed handshake.");
-            CfgAutoJoin = Config.Bind("Loopback", "AutoJoin", true,
+            CfgAutoJoin = Config.Bind("Loopback", "AutoJoin", false,
                 "Client only: once peer is up and the host has published a seed via fake lobby data, synthesize a " +
                 "LobbyEnter_t and call snl.OnReallyJoin() directly. That runs the stock seed handoff " +
                 "(GetLobbyData('seed') → mainmenuscript.PressedJoinLobby → LoadScene). Skips needing the lobby " +
@@ -123,6 +155,26 @@ namespace TLDPubLoopback
                 "Synthetic CSteamID to report as sns.s.lobby.lobbyID. Any non-zero ulong distinct from real " +
                 "Steam lobby IDs works — only used as an identifier in stock code paths that take lobbyID as a " +
                 "parameter (most of which our patches intercept anyway).");
+
+            CfgNetSim = Config.Bind("NetSim", "Enabled", false,
+                "Master toggle for the network-conditions simulator. When ON, packets received via the file " +
+                "bridge are delayed + occasionally dropped to mimic real Steam P2P. Lets you reproduce real-MP " +
+                "issues (car drift, friend pop, push snap-back) locally with no friend online — pure loopback " +
+                "has 0ms latency and 0% loss which hides all of them. Default OFF so the simulator only kicks " +
+                "in when you explicitly opt in.");
+            CfgNetSimLatencyMs = Config.Bind("NetSim", "LatencyMs", 100f,
+                "Base one-way delay added to each received packet, in milliseconds. Typical Steam P2P RTT to " +
+                "a remote friend is 30-150ms one-way; 100 is a reasonable default for 'feels like a friend on " +
+                "the same continent'. Range (0, 2000).");
+            CfgNetSimJitterMs = Config.Bind("NetSim", "JitterMs", 20f,
+                "Random ± variation added around LatencyMs, per packet. Models the fact that real-network " +
+                "latency varies frame-to-frame. 20ms is moderate; 50+ for poor connections. Each packet's " +
+                "delay = clamp(LatencyMs + uniform(-JitterMs, +JitterMs), 0, ...).");
+            CfgNetSimDropRate = Config.Bind("NetSim", "DropRate", 0.02f,
+                "Fraction of non-heartbeat packets to silently drop, simulating Steam P2P's unreliable channel " +
+                "dropping occasional packets under load. 0.02 = 2% loss (mild). 0.05 = 5% (noticeable). 0.1 = " +
+                "10% (broken connection). Heartbeats are always delivered (so peer-up detection still works). " +
+                "Range (0, 0.5).");
 
             fakePeerID = new CSteamID(CfgFakePeerSteamID.Value);
 
@@ -288,6 +340,50 @@ namespace TLDPubLoopback
             readThread.Start();
             heartbeatThread = new Thread(HeartbeatLoop) { IsBackground = true, Name = "TLDLoopback-Heartbeat" };
             heartbeatThread.Start();
+            netSimDeliveryThread = new Thread(NetSimDeliveryLoop) { IsBackground = true, Name = "TLDLoopback-NetSimDeliver" };
+            netSimDeliveryThread.Start();
+        }
+
+        // Wakes periodically, moves any pending packets whose DeliverAtTicks has elapsed from
+        // netSimPending into inboundQueue. When NetSim is disabled this thread idles harmlessly
+        // (nothing ever lands in netSimPending).
+        private static void NetSimDeliveryLoop()
+        {
+            while (!shuttingDown)
+            {
+                try
+                {
+                    long now = DateTime.UtcNow.Ticks;
+                    List<byte[]> toDeliver = null;
+                    lock (netSimLock)
+                    {
+                        for (int i = netSimPending.Count - 1; i >= 0; i--)
+                        {
+                            if (netSimPending[i].DeliverAtTicks <= now)
+                            {
+                                if (toDeliver == null) toDeliver = new List<byte[]>();
+                                toDeliver.Add(netSimPending[i].Payload);
+                                netSimPending.RemoveAt(i);
+                            }
+                        }
+                    }
+                    if (toDeliver != null)
+                    {
+                        // Preserve send order — RemoveAt iterated backward, so toDeliver is reversed.
+                        toDeliver.Reverse();
+                        lock (inboundLock)
+                        {
+                            foreach (var p in toDeliver) inboundQueue.AddLast(p);
+                        }
+                    }
+                    SafeSleep(5);
+                }
+                catch (Exception ex)
+                {
+                    Log.LogWarning("[Loopback NetSim] delivery loop: " + ex.Message);
+                    SafeSleep(100);
+                }
+            }
         }
 
         private static void EnsureOutStream()
@@ -366,9 +462,41 @@ namespace TLDPubLoopback
                             if (ReadExact(fs, payload, len) < len) { fs.Seek(startPos, SeekOrigin.Begin); break; }
                             inboundPos = fs.Position;
                             lastPeerActivity = Time.realtimeSinceStartup;
-                            if (len != 1 || payload[0] != 250)
+                            bool isHeartbeat = (len == 1 && payload[0] == 250);
+                            if (!isHeartbeat)
                             {
-                                lock (inboundLock) { inboundQueue.AddLast(payload); }
+                                if (CfgNetSim.Value)
+                                {
+                                    // Drop?
+                                    float dropRate = Mathf.Clamp(CfgNetSimDropRate.Value, 0f, 0.5f);
+                                    if (dropRate > 0f && netSimRng.NextDouble() < dropRate)
+                                    {
+                                        Interlocked.Increment(ref netSimDropped);
+                                        // skip — packet silently lost
+                                    }
+                                    else
+                                    {
+                                        // Delay: latency + jitter
+                                        float lat = Mathf.Clamp(CfgNetSimLatencyMs.Value, 0f, 2000f);
+                                        float jit = Mathf.Clamp(CfgNetSimJitterMs.Value, 0f, 500f);
+                                        double offsetMs = lat;
+                                        if (jit > 0f)
+                                        {
+                                            offsetMs += (netSimRng.NextDouble() * 2.0 - 1.0) * jit;
+                                            if (offsetMs < 0) offsetMs = 0;
+                                        }
+                                        long deliverAtTicks = DateTime.UtcNow.Ticks + (long)(offsetMs * TimeSpan.TicksPerMillisecond);
+                                        lock (netSimLock)
+                                        {
+                                            netSimPending.Add(new PendingPacket { Payload = payload, DeliverAtTicks = deliverAtTicks });
+                                        }
+                                        Interlocked.Increment(ref netSimDelayed);
+                                    }
+                                }
+                                else
+                                {
+                                    lock (inboundLock) { inboundQueue.AddLast(payload); }
+                                }
                                 Interlocked.Add(ref recvBytes, len);
                                 Interlocked.Increment(ref recvCount);
                             }
