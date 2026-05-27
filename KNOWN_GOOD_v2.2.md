@@ -72,3 +72,58 @@ Lives in `/src` but not in `/public` or the manifest:
 - `TLDPubMPCapture`, `TLDPubFullLog`, `TLDPubSpawner` — older diagnostics, sources only.
 - `ReedoModToolkit` — TLDLoader mod with F11 UI for browsing/enabling/disabling/updating both BepInEx and TLDLoader-format mods.
 - `tld_install_tldloader/` — one-shot installer (Mono.Cecil based) that patches Assembly-CSharp.dll + drops TLDLoader runtime files on Linux+Proton. Replicates what TLDworkshop.exe does on Windows.
+
+
+---
+
+# UPDATE 2026-05-26 (post-archive) — CRITICAL TLDLoader finding
+
+After spending hours diagnosing what looked like progressive MP regressions during a
+session, we identified the actual cause by reverting Assembly-CSharp.dll from the
+`.pre-tldloader.bak` and removing the TLDLoader runtime files.
+
+## **Installing TLDLoader breaks stock TLD multiplayer.**
+
+Specifically: applying the Cecil patch that adds `Call TLDLoader.ModLoader.InitMainMenu`
+to `mainmenuscript.Start` + `Call TLDLoader.ModLoader.dbInit` to `itemdatabase.Awake`,
+AND/OR having TLDLoader runtime loaded into Managed, AND/OR running M-ultiTool's
+Harmony patches — some combination of these introduces severe regressions to MP that do
+not exist on pure stock TLD. Confirmed by:
+
+1. Yesterday's stock-v1.1 + real Steam P2P session was "literally perfect."
+2. Same plugin set today after installing TLDLoader = "a mess" — car driving stalls,
+   item drift, world desync.
+3. Reverting Assembly-CSharp.dll from backup + removing TLDLoader files = "PERFECT
+   AGAIN" (user's own words).
+
+We did not pinpoint exactly which TLDLoader/M-ultiTool component is the culprit. Could
+be M-ultiTool patching physics or vehicle code, could be TLDLoader's ModCore changing
+something at scene load. Empirically: the whole stack breaks MP.
+
+## Recommended posture
+
+- **For solo / creative play**: install TLDLoader + M-ultiTool. They work great for
+  that use case. The whole TLDworkshop ecosystem is built around it.
+- **For multiplayer**: leave TLDLoader uninstalled (or revert it before joining MP).
+  Use only the BepInEx-based plugins in this manifest.
+
+## How to revert TLDLoader on Linux+Proton
+
+```
+# in the game install dir
+MANAGED="<install>/TheLongDrive_Data/Managed"
+cp "$MANAGED/Assembly-CSharp.dll.pre-tldloader.bak" "$MANAGED/Assembly-CSharp.dll"
+rm -f "$MANAGED/TLDLoader.dll" "$MANAGED/Mono.Cecil.dll" "$MANAGED/0Harmony.dll"
+
+# move the Mods folder aside (TLDLoader can't load it anyway with Assembly-CSharp
+# unpatched, but cleaner)
+PFX_DOCS="$HOME/.local/share/Steam/steamapps/compatdata/<AppID>/pfx/drive_c/users/steamuser/Documents/TheLongDrive"
+mv "$PFX_DOCS/Mods" "$PFX_DOCS/Mods.disabled-for-mp"
+
+# When you want it back for solo play:
+# 1) run the tld_install_tldloader tool again
+# 2) rename Mods.disabled-for-mp -> Mods
+```
+
+This is what `tld_install_tldloader` does in reverse. We should add a `--uninstall`
+flag for symmetry in a future commit.
