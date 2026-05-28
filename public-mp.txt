@@ -1,4 +1,4 @@
-# TLD Public MP — plugin manifest (v2.3 known-good)
+# TLD Public MP — plugin manifest (v2.4 known-good)
 #
 # Format: <PluginAssemblyName>  <Version>  <DownloadURL>
 # Lines starting with # are comments. Blank lines are skipped.
@@ -7,23 +7,26 @@
 # <Version> against the BepInPlugin version of each local DLL, and downloads
 # anything newer as *.dll.update (applied on next launch).
 #
-# v2.3 (2026-05-27): adds two physics improvements on top of the v2.2
-# conservative-fixes baseline.
+# v2.4 (2026-05-27): adds TLDPubClaimDrivenCar to fix the "client can't keep
+# the engine running" symptom + updates TLDPubRemoteCarKinematic to respect
+# the new claim transfer.
 #
-#   - TLDPubCarSync 0.1.0
-#       Bumps the host's per-car position broadcast from stock 1Hz to a
-#       configurable rate (default 20Hz). Narrows the gap during which the
-#       receiving client's local sim can diverge from authoritative state from
-#       ~1000ms to ~50ms. Idle-skips parked vehicles so bandwidth scales with
-#       moving cars only.
+#   - TLDPubClaimDrivenCar 0.1.0 (NEW)
+#       When the local player gets in a car as driver, calls Claim(true)
+#       so this side becomes physics-authoritative. GetOut releases. Ports
+#       the GetIn/GetOut claim hooks from MPPatch v2.9 (excluded from v2.1
+#       because of host wheel-suspension fight; now safe with v0.5 of the
+#       kinematic plugin protecting the non-driver's side).
 #
-#   - TLDPubRemoteCarKinematic 0.1.0
-#       Sets isKinematic=true on the rigidbody of any car the local side
-#       isn't currently driving (host-driven cars on the client, etc.). Stops
-#       the wheel-rigidbody-vs-network-position tug-of-war that caused the
-#       up/down "bouncing like overloaded suspension" symptom under any
-#       network latency. Local physics resumes as soon as the local player
-#       enters the car.
+#   - TLDPubRemoteCarKinematic 0.5.0 (UPDATED from 0.1.0)
+#       Adds otherClaimed clause to the authority check. When a client
+#       claims a car the host is also rendering, host now goes kinematic on
+#       that car too, instead of running double-physics that fights the
+#       client's authoritative broadcasts.
+#
+# v2.3 carry-over (unchanged):
+#
+#   - TLDPubCarSync 0.1.0 — 20Hz host car broadcast (was stock 1Hz).
 #
 # Also included (off by default, opt-in via [Testing] Enabled = true in their
 # respective configs) for two-instance local MP testing:
@@ -35,9 +38,6 @@
 # are fully inert until you explicitly turn on [Testing] Enabled = true in
 # the Loopback config (which is the single master flag). Do NOT enable
 # testing mode if you want to play with a real friend over real Steam P2P.
-#
-# This snapshot was confirmed working under NetSim 100ms±50ms latency, 4%
-# packet loss in the local two-instance loopback test setup.
 
 TLDMPUnlock              2.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDMPUnlock.dll
 TLDPubMPPatch            1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPPatch.dll
@@ -49,6 +49,7 @@ TLDPubPlayerStable       0.1.0   https://raw.githubusercontent.com/Reedo22/The-L
 TLDPubFluidDedupe        0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubFluidDedupe.dll
 TLDPubDriverAuthority    0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubDriverAuthority.dll
 TLDPubCarSync            0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubCarSync.dll
-TLDPubRemoteCarKinematic 0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubRemoteCarKinematic.dll
+TLDPubRemoteCarKinematic 0.5.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubRemoteCarKinematic.dll
+TLDPubClaimDrivenCar     0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubClaimDrivenCar.dll
 TLDPubLoopback           0.15.0  https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubLoopback.dll
 TLDPubFakeId             1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubFakeId.dll
