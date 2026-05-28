@@ -1,4 +1,4 @@
-# TLD Public MP — plugin manifest (v2.1 known-good)
+# TLD Public MP — plugin manifest (v2.3 known-good)
 #
 # Format: <PluginAssemblyName>  <Version>  <DownloadURL>
 # Lines starting with # are comments. Blank lines are skipped.
@@ -7,38 +7,48 @@
 # <Version> against the BepInPlugin version of each local DLL, and downloads
 # anything newer as *.dll.update (applied on next launch).
 #
-# This snapshot was confirmed working by Reedo in a real-MP session +
-# NetSim-emulated session (100ms±50ms latency, 4% packet loss). The Driver
-# Authority + Fluid Dedupe + Player Stable + Body Push combination
-# specifically addressed:
-#   - "Rev but no movement" while driving (DriverAuthority — stops echoed
-#     stale inputs from clobbering the driver's W press under latency)
-#   - Friend disappears from seat and re-pops (PlayerStable — extends the
-#     stock 1.5s player-destroy timeout to 5s so brief network/GC stutters
-#     don't destroy avatars)
-#   - Pushed items snap back (BodyPush — broadcasts pushablescript.PushLocal
-#     impulses that stock TLD silently drops)
-#   - Bandwidth saturation (FluidDedupe — kills ~95% of the 32k fluid-state
-#     packets/5min spam that stock TLD broadcasts; measured directly off the
-#     bridge files under load).
+# v2.3 (2026-05-27): adds two physics improvements on top of the v2.2
+# conservative-fixes baseline.
 #
-# All four are pure additive Harmony patches. No claim/authority changes, no
-# transport replacement, no smoothing. The previous experimental versions
-# that broke things (ClaimDrivenCars, ClaimMovingItems, SteamMatchmaking
-# fake-lobby, ItemSmooth) are NOT in this manifest and have been removed
-# from /public — their sources remain in /src for future revisit.
+#   - TLDPubCarSync 0.1.0
+#       Bumps the host's per-car position broadcast from stock 1Hz to a
+#       configurable rate (default 20Hz). Narrows the gap during which the
+#       receiving client's local sim can diverge from authoritative state from
+#       ~1000ms to ~50ms. Idle-skips parked vehicles so bandwidth scales with
+#       moving cars only.
 #
-# Dev-only tools (TLDPubLoopback v0.12 with NetSim, TLDPubBridge HTTP
-# introspect) are also NOT in this manifest. They live in /src and can be
-# manually installed for local two-instance testing if you want to
-# reproduce real-network conditions without your friend online.
+#   - TLDPubRemoteCarKinematic 0.1.0
+#       Sets isKinematic=true on the rigidbody of any car the local side
+#       isn't currently driving (host-driven cars on the client, etc.). Stops
+#       the wheel-rigidbody-vs-network-position tug-of-war that caused the
+#       up/down "bouncing like overloaded suspension" symptom under any
+#       network latency. Local physics resumes as soon as the local player
+#       enters the car.
+#
+# Also included (off by default, opt-in via [Testing] Enabled = true in their
+# respective configs) for two-instance local MP testing:
+#
+#   - TLDPubLoopback 0.15.0       — file-bridge transport + NetSim + lobby fake
+#   - TLDPubFakeId 1.0.0           — patches SteamUser.GetSteamID for ID swap
+#
+# These ship in /public so users can easily set up local testing, but they
+# are fully inert until you explicitly turn on [Testing] Enabled = true in
+# the Loopback config (which is the single master flag). Do NOT enable
+# testing mode if you want to play with a real friend over real Steam P2P.
+#
+# This snapshot was confirmed working under NetSim 100ms±50ms latency, 4%
+# packet loss in the local two-instance loopback test setup.
 
-TLDMPUnlock           2.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDMPUnlock.dll
-TLDPubMPPatch         1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPPatch.dll
-TLDPubMPDiag          1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPDiag.dll
-TLDPubDevMode         1.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubDevMode.dll
-TLDDirectMP           0.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDDirectMP.dll
-TLDPubBodyPush        0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubBodyPush.dll
-TLDPubPlayerStable    0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubPlayerStable.dll
-TLDPubFluidDedupe     0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubFluidDedupe.dll
-TLDPubDriverAuthority 0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubDriverAuthority.dll
+TLDMPUnlock              2.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDMPUnlock.dll
+TLDPubMPPatch            1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPPatch.dll
+TLDPubMPDiag             1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubMPDiag.dll
+TLDPubDevMode            1.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubDevMode.dll
+TLDDirectMP              0.2.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDDirectMP.dll
+TLDPubBodyPush           0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubBodyPush.dll
+TLDPubPlayerStable       0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubPlayerStable.dll
+TLDPubFluidDedupe        0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubFluidDedupe.dll
+TLDPubDriverAuthority    0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubDriverAuthority.dll
+TLDPubCarSync            0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubCarSync.dll
+TLDPubRemoteCarKinematic 0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubRemoteCarKinematic.dll
+TLDPubLoopback           0.15.0  https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubLoopback.dll
+TLDPubFakeId             1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubFakeId.dll
