@@ -1,4 +1,4 @@
-# TLD Public MP — plugin manifest (v2.4 known-good)
+# TLD Public MP — plugin manifest (v2.5 known-good)
 #
 # Format: <PluginAssemblyName>  <Version>  <DownloadURL>
 # Lines starting with # are comments. Blank lines are skipped.
@@ -7,9 +7,20 @@
 # <Version> against the BepInPlugin version of each local DLL, and downloads
 # anything newer as *.dll.update (applied on next launch).
 #
-# v2.4 (2026-05-27): adds TLDPubClaimDrivenCar to fix the "client can't keep
-# the engine running" symptom + updates TLDPubRemoteCarKinematic to respect
-# the new claim transfer.
+# v2.5 (2026-05-27): adds TLDPubPasswordEnter to fix the broken "Enter" key
+# in stock TLD's join-password dialog.
+#
+#   - TLDPubPasswordEnter 0.1.0 (NEW)
+#       Stock TLD's snl.IF_Password input field has no onSubmit/onEndEdit
+#       wiring — pressing Enter does nothing, you have to mouse-click the
+#       OK button. This plugin watches Enter/KeypadEnter while the password
+#       panel is showing AND the field is focused AND the text is non-empty,
+#       then invokes snl.PressedPasswordOk() (the same call the OK button
+#       makes).
+#
+# v2.4 carry-over (unchanged):
+#   - TLDPubClaimDrivenCar 0.1.0 — claim car on get-in (fixed client engine-stall)
+#   - TLDPubRemoteCarKinematic 0.5.0 — otherClaimed-aware authority on host
 #
 #   - TLDPubClaimDrivenCar 0.1.0 (NEW)
 #       When the local player gets in a car as driver, calls Claim(true)
@@ -53,3 +64,4 @@ TLDPubRemoteCarKinematic 0.5.0   https://raw.githubusercontent.com/Reedo22/The-L
 TLDPubClaimDrivenCar     0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubClaimDrivenCar.dll
 TLDPubLoopback           0.15.0  https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubLoopback.dll
 TLDPubFakeId             1.0.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubFakeId.dll
+TLDPubPasswordEnter      0.1.0   https://raw.githubusercontent.com/Reedo22/The-Long-Drive-Fixes/main/public/TLDPubPasswordEnter.dll

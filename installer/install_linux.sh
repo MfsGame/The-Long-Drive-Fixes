@@ -9,7 +9,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # ---- self-update from github ----
-BUNDLED_VERSION="v2.4"
+BUNDLED_VERSION="v2.5"
 REPO="Reedo22/The-Long-Drive-Fixes"
 API="https://api.github.com/repos/$REPO/releases/latest"
 

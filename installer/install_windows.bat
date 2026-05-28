@@ -3,7 +3,7 @@ REM TLD Public MP v2.4 - Windows installer
 setlocal enabledelayedexpansion
 
 set "SCRIPT_DIR=%~dp0"
-set "BUNDLED_VERSION=v2.4"
+set "BUNDLED_VERSION=v2.5"
 
 REM ---- self-update from github ----
 REM Skips if TLDMP_SKIP_UPDATE is set, if already re-executed once, or if PowerShell isn't available.
