@@ -1,1 +1,13 @@
-This is a performance and multiplayer patch for The Long Drive public branch, this was made with Claude so temper your expectations and please don't send me a lot of hate. This uses BepEnEx to inject code into the dll's while it runs to change things. The performance patches gave the game in my case (12600kf and 4080 super) a almost 2x performance boost. Multiplayer brings back the previously disabled multiplayer function in public and fixes many issues such as jittering movement of objects and cars and many other things. The regular install includes but keeps the developer mode off in config. Developer mode includes NetSim which simulates realistic-ish network conditions, Loopback which allows 2 clients on the same computer to communicate as if through a server, and lots of logging software. Again I make no guarentee i just wanted to see what i could make with help, i do not support ai art and lean pretty hard to anti ai but i see use in it, i dont want to argue so just please leave me alone instead of yelling at me, I am fairly young and not experienced in programming and am activily learning.
+这是《长途旅行》正式版的性能优化+多人联机补丁
+ 
+该补丁借助BepInEx框架，在游戏运行时向动态链接库注入代码来实现各项修改
+游戏帧率几乎提升了一倍。
+ 
+多人联机功能恢复了正式版中此前被停用的联机模块，同时修复了大量问题
+比如载具、物体移动卡顿抖动等各类故障。
+ 
+常规安装版本会保留相关配置，但默认关闭开发者模式；
+开发者模式包含这些功能：
+网络模拟（还原贴近真实的网络环境）
+本地回环（支持同一台电脑上两个客户端像联机服务器一样互通）
+以及各类日志记录工具。
